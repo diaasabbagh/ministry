@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+class CertTypeModel {
+  final int id;
+  final String certificationName;
+
+  CertTypeModel({required this.id, required this.certificationName});
+
+  factory CertTypeModel.fromJson(Map<String, dynamic> json) {
+    return CertTypeModel(
+        id: json['id'], certificationName: json['certification']['name']);
+  }
+}
+
 class Certificate {
   String name;
   List<Subject> subjects;
@@ -10,7 +22,6 @@ class Certificate {
   Certificate({
     required this.name,
     required this.subjects,
-   
     required this.icon,
     required this.imageAsset,
   });

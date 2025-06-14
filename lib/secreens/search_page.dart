@@ -1,10 +1,86 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_eyman/constant/color.dart';
 import 'package:flutter_application_eyman/constant/image.dart';
-import 'package:flutter_application_eyman/secreens/result_page.dart';
+import 'package:flutter_application_eyman/secreens/mark_page.dart';
+import 'package:http/http.dart' as http;
 
-class SearchPage extends StatelessWidget {
+import '../models/education_model.dart';
+import '../models/year_model.dart';
+import '../utils/global.dart';
+
+class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
+
+  @override
+  State<SearchPage> createState() => _SearchPageState();
+}
+
+class _SearchPageState extends State<SearchPage> {
+  List<CertTypeModel> certTypes = [];
+  bool isCertLoading = true;
+
+  List<YearModel> years = [];
+  YearModel? selectedYear;
+  bool isLoading = true;
+
+  int? certTypeId ;
+  int? eYearId;
+  final TextEditingController numberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    loadYears();
+    loadCertTypes();
+  }
+  void loadCertTypes() async {
+    try {
+      final baseUrl = Global.baseUrl;
+      final token= Global.token;
+      final url = Uri.parse('$baseUrl/certType/');
+      final response = await http.get(url, headers: {
+        'Authorization': token,
+      });
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body)['data'];
+        setState(() {
+          certTypes = data.map((e) => CertTypeModel.fromJson(e)).toList();
+          isCertLoading = false;
+        });
+      } else {
+        print(response.statusCode);
+        throw Exception('Failed fetching certificate types');
+      }
+    } catch (e) {
+      setState(() => isCertLoading = false);
+    }
+  }
+
+  void loadYears() async {
+    try {
+      final baseUrl = Global.baseUrl;
+      final token= Global.token;
+      final url = Uri.parse('$baseUrl/admin/years');
+      final response = await http.get(url, headers: {
+        'Authorization': token,
+      });
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body)['data'];
+        setState(() {
+          years = data.map((e) => YearModel.fromJson(e)).toList();
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed fetching years');
+      }
+    } catch (e) {
+      print('Error fetching years: $e');
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,14 +89,15 @@ class SearchPage extends StatelessWidget {
       body: Stack(
         children: [
           SizedBox.expand(
-              child: Opacity(
-            opacity: 0.4, // لتقليل حدة الصورة
-            child: Image.asset(
-              AppImageAsset.s,
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
+            child: Opacity(
+              opacity: 0.4,
+              child: Image.asset(
+                AppImageAsset.s,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
             ),
-          )),
+          ),
           SafeArea(
             child: Column(
               children: [
@@ -47,21 +124,21 @@ class SearchPage extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                // النموذج الرئيسي
                 Center(
                   child: Card(
                     color: AppColor.backgroundcolor,
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     elevation: 8,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
-                            'Basic Education | 2023 - 2024',
+                            ' Choose Education Type',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
@@ -69,61 +146,94 @@ class SearchPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
+
                           // نوع الشهادة
-                          DropdownButtonFormField<String>(
+
+                          DropdownButtonFormField<int>(
                             decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.school),
                               labelText: "Certificate Type",
                               border: OutlineInputBorder(),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                  value: 'basic',
-                                  child: Text('Basic Education')),
-                              DropdownMenuItem(
-                                  value: 'high', child: Text('High School')),
-                            ],
-                            onChanged: (_) {},
+                            items: certTypes.map((cert) {
+                              return DropdownMenuItem<int>(
+                                value: cert.id,
+                                child: Text(cert.certificationName),
+                              );
+                            }).toList(),
+
+                            onChanged: (value) {
+                              setState(() {
+                                certTypeId = value;
+                              });
+                            },
                           ),
+
                           const SizedBox(height: 12),
-                          // المحافظة
-                          DropdownButtonFormField<String>(
+
+                          // السنة
+                               DropdownButtonFormField<int>(
                             decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.location_city),
-                              labelText: "Governorate",
+                              prefixIcon: Icon(Icons.calendar_today),
+                              labelText: "Academic Year",
                               border: OutlineInputBorder(),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                  value: 'damascus', child: Text('Damascus')),
-                              DropdownMenuItem(
-                                  value: 'aleppo', child: Text('Aleppo')),
-                            ],
-                            onChanged: (_) {},
+                            value: eYearId,
+                            items: years.map((year) {
+                              return DropdownMenuItem<int>(
+                                value: year.id,
+                                child: Text(year.value),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                eYearId = value;
+                              });
+                            },
                           ),
+
                           const SizedBox(height: 12),
+
                           // رقم الاكتتاب
-                          const TextField(
-                            decoration: InputDecoration(
+                          TextField(
+                            controller: numberController,
+                            decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.confirmation_number),
                               labelText: 'Registration Number',
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
                           ),
+
                           const SizedBox(height: 20),
+
                           // زر البحث
                           SizedBox(
                             width: double.infinity,
                             height: 48,
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ResultPage(),
-                                  ),
-                                );
+                                if (certTypeId != null &&
+                                    eYearId != null &&
+                                    numberController.text.isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => Mark_page(
+                                        certTypeId: certTypeId!,
+                                        eYearId: eYearId!,
+                                        number: numberController.text,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please fill all fields"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               },
                               icon: const Icon(
                                 Icons.search,
@@ -132,7 +242,7 @@ class SearchPage extends StatelessWidget {
                               label: const Text(
                                 'Search',
                                 style:
-                                    TextStyle(color: AppColor.backgroundcolor),
+                                TextStyle(color: AppColor.backgroundcolor),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColor.purple,

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_eyman/constant/color.dart';
 import 'package:flutter_application_eyman/constant/image.dart';
 import 'package:flutter_application_eyman/secreens/minister_page.dart';
+import 'package:flutter_application_eyman/services/auth_service.dart';
+import 'package:flutter_application_eyman/utils/global.dart';
+import 'data_entry_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,8 +14,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController(text: "admin@gmail.com");
-  final _passwordController = TextEditingController(text: "12345678");
+  final _usernameController = TextEditingController(text: "dataEntry1");
+  final _passwordController = TextEditingController(text: "password");
   final _formKey = GlobalKey<FormState>();
 
   bool _isPasswordVisible = false;
@@ -24,13 +27,13 @@ class LoginPageState extends State<LoginPage> {
         children: [
           SizedBox.expand(
               child: Opacity(
-            opacity: 0.5,
-            child: Image.asset(
-              AppImageAsset.s,
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-            ),
-          )),
+                opacity: 0.5,
+                child: Image.asset(
+                  AppImageAsset.s,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              )),
           Center(
             child: SingleChildScrollView(
               child: Form(
@@ -43,9 +46,8 @@ class LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black
-                            .withOpacity(0.4),
-                        offset: const Offset(0, 4), 
+                        color: Colors.black.withOpacity(0.4),
+                        offset: const Offset(0, 4),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -100,7 +102,7 @@ class LoginPageState extends State<LoginPage> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your password';
-                          } else if (value.length < 8 || value.length > 25) {
+                          } else if (value.length < 5 || value.length > 25) {
                             return 'Password must be between 8 and 25 characters';
                           }
                           return null;
@@ -113,14 +115,35 @@ class LoginPageState extends State<LoginPage> {
                             backgroundColor: AppColor.orange,
                             minimumSize: const Size(200, 50),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CertificateDashboard(),
-                                ),
-                              );
+                              try {
+                                final result = await AuthService.login(
+                                  _usernameController.text.trim(),
+                                  _passwordController.text.trim(),
+                                );
+
+                                Global.token = result['token'];
+                                Global.isAdmin = result['isAdmin'] ?? false;
+
+                                print('  Global.token: ${Global.token}');
+
+                                if (Global.isAdmin) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const CertificateDashboard()),
+                                  );
+                                } else {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const DataEntryPage()),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Login error: $e')),
+                                );
+                              }
                             }
                           },
                           child: const Text('Login'),
