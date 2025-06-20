@@ -45,6 +45,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   List<YearModel> years = [];
   YearModel? selectedYear;
   List<CertTypeModel> certTypes = [];
+  List<String> certifications = [];
+  String? selectedCertification;
   CertTypeModel? selectedCertType;
 
   String resultStatus = 'Passed';
@@ -98,8 +100,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       final response = await http.get(url, headers: {'Authorization': Global.token});
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body)['data'];
+        final types = data.map((e) => CertTypeModel.fromJson(e)).toList();
         setState(() {
-          certTypes = data.map((e) => CertTypeModel.fromJson(e)).toList();
+          certTypes = types;
+          certifications = types.map((e) => e.certificationName).toSet().toList();
         });
       }
     } catch (e) {
@@ -117,6 +121,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     fullNameController.clear();
     schoolController.clear();
     setState(() {
+      selectedCertification = null;
+      selectedCertType = null;
+      selectedYear = null;
       resultStatus = 'Passed';
     });
   }
@@ -232,25 +239,44 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                                       TableRow(children: [
                                         const Padding(
                                           padding: EdgeInsets.symmetric(vertical: 10),
-                                          child: Text('Certificate:', style: TextStyle(fontSize: 16)),
+                                          child: Text('Certification:', style: TextStyle(fontSize: 16)),
                                         ),
-                                        DropdownButtonFormField<CertTypeModel>(
-                                          value: selectedCertType,
+                                        DropdownButtonFormField<String>(
+                                          value: selectedCertification,
                                           decoration: const InputDecoration(border: OutlineInputBorder()),
-                                          hint: const Text("Certificate Type"),
-                                          items: certTypes.map((type) {
-                                            return DropdownMenuItem(
-                                              value: type,
-                                              child: Text(type.certificationName),
-                                            );
-                                          }).toList(),
+                                          hint: const Text("Select Certification"),
+                                          items: certifications
+                                              .map((cert) => DropdownMenuItem(value: cert, child: Text(cert)))
+                                              .toList(),
                                           onChanged: (value) {
                                             setState(() {
-                                              selectedCertType = value;
+                                              selectedCertification = value;
+                                              selectedCertType = null;
                                             });
                                           },
                                         ),
                                       ]),
+                                      if (selectedCertification != null)
+                                        TableRow(children: [
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 10),
+                                            child: Text('Type:', style: TextStyle(fontSize: 16)),
+                                          ),
+                                          DropdownButtonFormField<CertTypeModel>(
+                                            value: selectedCertType,
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                            hint: const Text("Select Type"),
+                                            items: certTypes
+                                                .where((type) => type.certificationName == selectedCertification)
+                                                .map((type) => DropdownMenuItem(value: type, child: Text(type.name)))
+                                                .toList(),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                selectedCertType = value;
+                                              });
+                                            },
+                                          ),
+                                        ]),
                                       TableRow(children: [
                                         const Padding(
                                           padding: EdgeInsets.symmetric(vertical: 10),
