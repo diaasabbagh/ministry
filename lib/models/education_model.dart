@@ -3,12 +3,20 @@ import 'package:flutter/material.dart';
 class CertTypeModel {
   final int id;
   final String certificationName;
+  final String name;
 
-  CertTypeModel({required this.id, required this.certificationName});
+  CertTypeModel({
+    required this.id,
+    required this.certificationName,
+    required this.name,
+  });
 
   factory CertTypeModel.fromJson(Map<String, dynamic> json) {
     return CertTypeModel(
-        id: json['id'], certificationName: json['certification']['name']);
+      id: json['id'],
+      certificationName: json['certification']['name'],
+      name: json['name'],
+    );
   }
 }
 

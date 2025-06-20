@@ -18,13 +18,15 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   List<CertTypeModel> certTypes = [];
+  List<String> certifications = [];
+  String? selectedCertification;
   bool isCertLoading = true;
 
   List<YearModel> years = [];
   YearModel? selectedYear;
   bool isLoading = true;
 
-  int? certTypeId ;
+  int? certTypeId;
   int? eYearId;
   final TextEditingController numberController = TextEditingController();
 
@@ -45,8 +47,11 @@ class _SearchPageState extends State<SearchPage> {
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body)['data'];
+        final types = data.map((e) => CertTypeModel.fromJson(e)).toList();
         setState(() {
-          certTypes = data.map((e) => CertTypeModel.fromJson(e)).toList();
+          certTypes = types;
+          certifications =
+              types.map((e) => e.certificationName).toSet().toList();
           isCertLoading = false;
         });
       } else {
@@ -147,21 +152,47 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                           const SizedBox(height: 20),
 
-                          // نوع الشهادة
+                          // قائمة الشهادات
 
-                          DropdownButtonFormField<int>(
+                          DropdownButtonFormField<String>(
                             decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.school),
-                              labelText: "Certificate Type",
+                              labelText: "Certificate",
                               border: OutlineInputBorder(),
                             ),
-                            items: certTypes.map((cert) {
-                              return DropdownMenuItem<int>(
-                                value: cert.id,
-                                child: Text(cert.certificationName),
-                              );
-                            }).toList(),
+                            value: selectedCertification,
+                            items: certifications
+                                .map((name) => DropdownMenuItem<String>(
+                                      value: name,
+                                      child: Text(name),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedCertification = value;
+                                certTypeId = null; // reset branch selection
+                              });
+                            },
+                          ),
 
+                          const SizedBox(height: 12),
+
+                          // قائمة الافراع
+                          DropdownButtonFormField<int>(
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.school_outlined),
+                              labelText: "Branch",
+                              border: OutlineInputBorder(),
+                            ),
+                            value: certTypeId,
+                            items: certTypes
+                                .where((c) =>
+                                    c.certificationName == selectedCertification)
+                                .map((c) => DropdownMenuItem<int>(
+                                      value: c.id,
+                                      child: Text(c.name),
+                                    ))
+                                .toList(),
                             onChanged: (value) {
                               setState(() {
                                 certTypeId = value;
