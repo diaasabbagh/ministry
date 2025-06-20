@@ -5,9 +5,11 @@ class CertTypeModel {
   final int certId;
   final String name;
   final String certificationName;
+  final String name;
 
   CertTypeModel({
     required this.id,
+ codex/add-dropdown-for-certification-list
     required this.certId,
     required this.name,
     required this.certificationName,
@@ -16,6 +18,7 @@ class CertTypeModel {
   factory CertTypeModel.fromJson(Map<String, dynamic> json) {
     return CertTypeModel(
       id: json['id'],
+ codex/add-dropdown-for-certification-list
       certId: json['certId'],
       name: json['name'],
       certificationName: json['certification']['name'],
